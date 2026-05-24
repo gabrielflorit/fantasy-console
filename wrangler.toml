@@ -1,0 +1,5 @@
+name = "fantasy-console"
+compatibility_date = "2026-05-24"
+
+[assets]
+directory = "./dist"
