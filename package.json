@@ -1,0 +1,11 @@
+{
+  "name": "fantasy-console",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsc -p tsconfig.shell.json --watch & tsc -p tsconfig.worker.json --watch",
+    "build": "tsc -p tsconfig.shell.json && tsc -p tsconfig.worker.json",
+    "serve": "node dev-server.js"
+  }
+}
