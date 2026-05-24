@@ -17,7 +17,9 @@ let server = http.createServer((req, res) => {
   let url = req.url === '/' ? '/index.html' : req.url
 
   let filePath
-  if (url === '/index.html') {
+  if (url.startsWith('/src/')) {
+    filePath = path.join(__dirname, url)
+  } else if (url === '/index.html') {
     filePath = path.join(__dirname, 'index.html')
   } else {
     filePath = path.join(__dirname, 'dist', url)
