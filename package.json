@@ -7,5 +7,8 @@
     "dev": "tsc -p tsconfig.shell.json --watch & tsc -p tsconfig.worker.json --watch",
     "build": "tsc -p tsconfig.shell.json && tsc -p tsconfig.worker.json",
     "serve": "node dev-server.js"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
   }
 }
