@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsc -p tsconfig.shell.json --watch & tsc -p tsconfig.worker.json --watch",
-    "build": "tsc -p tsconfig.shell.json && tsc -p tsconfig.worker.json",
+    "build": "tsc -p tsconfig.shell.json && tsc -p tsconfig.worker.json && cp index.html dist/index.html",
     "serve": "node dev-server.js"
   },
   "devDependencies": {
