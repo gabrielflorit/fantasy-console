@@ -1,6 +1,7 @@
-let worker = new Worker('./worker/index.js', { type: 'module' })
 let canvas = document.getElementById('canvas') as HTMLCanvasElement
 let ctx = canvas.getContext('2d')!
+let watchdog: ReturnType<typeof setTimeout> | null = null
+let worker: Worker
 
 let palette = ['#f0f0f0', '#a8a8a8', '#4a4a4a', '#0d0d0d']
 
@@ -11,8 +12,7 @@ function hexToRgb(hex: string): [number, number, number] {
   return [r, g, b]
 }
 
-worker.onmessage = (e: MessageEvent) => {
-  let { buffer } = e.data
+function renderBitmap(buffer: Uint8Array) {
   let imageData = ctx.createImageData(64, 64)
   for (let i = 0; i < buffer.length; i++) {
     let [r, g, b] = hexToRgb(palette[buffer[i]])
@@ -24,4 +24,33 @@ worker.onmessage = (e: MessageEvent) => {
   ctx.putImageData(imageData, 0, 0)
 }
 
-worker.postMessage({ type: 'ping' })
+function onWorkerMessage(e: MessageEvent) {
+  let msg = e.data
+  if (watchdog) clearTimeout(watchdog)
+
+  if (msg.type === 'bitmap') {
+    renderBitmap(msg.buffer)
+    setTimeout(tick, 33)
+  } else if (msg.type === 'crash') {
+    console.error('worker crash:', msg.message)
+    console.error(msg.stack)
+  }
+}
+
+function spawnWorker() {
+  if (worker) worker.terminate()
+  worker = new Worker('./worker/index.js', { type: 'module' })
+  worker.onmessage = onWorkerMessage
+}
+
+function tick() {
+  watchdog = setTimeout(() => {
+    console.error('worker hung, respawning')
+    spawnWorker()
+    tick()
+  }, 500)
+  worker.postMessage({ type: 'tick' })
+}
+
+spawnWorker()
+tick()
