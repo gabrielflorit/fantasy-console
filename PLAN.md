@@ -369,11 +369,12 @@ Work top to bottom. One task = one evening or less. Check off as done.
 - [x] Write shared message types: BitmapMessage, CrashMessage, CodeMessage, StateMessage, TickMessage
 - [ ] Implement clear() in worker — fills buffer with color index
 - [ ] Implement setPixel() in worker — sets value at xy
-- [ ] Refactor worker to respond to TickMessage (shell owns the loop)
-- [ ] Implement shell game loop: setTimeout 33ms, send tick, render on response
-- [ ] Implement watchdog in shell: 500ms timeout, terminates and respawns worker
-- [ ] Implement crash handler in shell: receives CrashMessage, logs to console
-- [ ] Write hardcoded test cassette that draws something recognizable (not just solid color)
+- [x] Refactor worker to respond to TickMessage (shell owns the loop)
+- [x] Implement shell game loop: setTimeout 33ms, send tick, render on response
+- [x] Implement watchdog in shell: 500ms timeout, terminates and respawns worker
+- [x] Implement crash handler in shell: receives CrashMessage, logs to console
+  - types.ts exists but not yet imported — wire up in Phase 2
+- [x] Write hardcoded test cassette that draws something recognizable (not just solid color)
 
 ### Phase 2 — Full cassette API
 
