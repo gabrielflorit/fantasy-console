@@ -1,7 +1,13 @@
+import type { WorkerToShell } from '../shared/types.js'
+import { starterCassette } from './starter.js'
+
 let canvas = document.getElementById('canvas') as HTMLCanvasElement
 let ctx = canvas.getContext('2d')!
 let watchdog: ReturnType<typeof setTimeout> | null = null
 let worker: Worker
+let running = false
+let lastTick = 0
+let currentSource = starterCassette
 
 let palette = ['#f0f0f0', '#a8a8a8', '#4a4a4a', '#0d0d0d']
 
@@ -25,15 +31,22 @@ function renderBitmap(buffer: Uint8Array) {
 }
 
 function onWorkerMessage(e: MessageEvent) {
-  let msg = e.data
-  if (watchdog) clearTimeout(watchdog)
+  let msg = e.data as WorkerToShell
+  if (watchdog) {
+    clearTimeout(watchdog)
+    watchdog = null
+  }
 
   if (msg.type === 'bitmap') {
     renderBitmap(msg.buffer)
-    setTimeout(tick, 33)
+    if (running) {
+      let delay = Math.max(0, 33 - (performance.now() - lastTick))
+      setTimeout(tick, delay)
+    }
   } else if (msg.type === 'crash') {
     console.error('worker crash:', msg.message)
     console.error(msg.stack)
+    running = false
   }
 }
 
@@ -44,13 +57,24 @@ function spawnWorker() {
 }
 
 function tick() {
+  lastTick = performance.now()
   watchdog = setTimeout(() => {
     console.error('worker hung, respawning')
+    running = false
     spawnWorker()
-    tick()
+    sendCode(currentSource)
   }, 500)
   worker.postMessage({ type: 'tick' })
 }
 
+function sendCode(source: string) {
+  currentSource = source
+  worker.postMessage({ type: 'code', source })
+  if (!running) {
+    running = true
+    tick()
+  }
+}
+
 spawnWorker()
-tick()
+sendCode(starterCassette)

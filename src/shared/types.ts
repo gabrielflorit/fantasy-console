@@ -1,4 +1,8 @@
 // Shell → Worker
+export interface TickMessage {
+  type: 'tick'
+}
+
 export interface CodeMessage {
   type: 'code'
   source: string
@@ -27,5 +31,5 @@ export interface StateMessage {
 }
 
 // Unions
-export type ShellToWorker = CodeMessage | InputMessage
+export type ShellToWorker = TickMessage | CodeMessage | InputMessage
 export type WorkerToShell = BitmapMessage | CrashMessage | StateMessage
