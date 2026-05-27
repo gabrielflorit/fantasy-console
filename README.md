@@ -102,10 +102,10 @@ fantasy-console/
   .gitignore
   PLAN.md                 design decisions, architecture, full task list
   src/
-    shared/               message types shared between shell and worker
-    shell/                shell code — runs in the browser
-    worker/               worker code — runs in a separate thread
-    server/               Cloudflare Worker API
+    shared/       message types, API shapes, constants
+    shell/        browser shell code
+    worker/       web worker code — cassette runtime
+    server/       Cloudflare Worker API — auth, storage
   dist/                   compiled output — do not edit
   vendor/                 vendored dependencies (CodeMirror) — committed, never auto-updated
 ```
@@ -120,14 +120,14 @@ The shell runs in the browser. It owns the game loop — every 33ms it sends a t
 
 ## Deployment
 
-**Shell** — Cloudflare Pages, auto-deploys on push to main:
+**Shell + Worker + Shared** — Cloudflare Pages, auto-deploys on push to main:
 
 ```bash
 npm run build
 git push
 ```
 
-**API Worker** — deploy manually from inside the VM:
+**Server** — deploy manually from inside the VM:
 
 ```bash
 wrangler deploy
