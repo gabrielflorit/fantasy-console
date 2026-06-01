@@ -2,7 +2,7 @@
 
 A minimal JavaScript fantasy console. 64×64, 4 colors, one button.
 
-See `PLAN.md` for all design decisions and the task list.
+See `PLAN.md` for all design decisions and the task list. `FACTORY-PLAN.md` covers the worker-module refactor currently in flight.
 
 ---
 

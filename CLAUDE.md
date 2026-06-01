@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A minimal JavaScript fantasy console running in the browser. 64×64 pixels, 4 colors (indexed 0–3, 0 = brightest, 3 = darkest), one button. Games ("cassettes") are written in JavaScript against a small constrained drawing API. The project is currently in **Phase 1** (bitmap pipeline working) and building toward Phase 2 (full cassette API).
+A minimal JavaScript fantasy console running in the browser. 64×64 pixels, 4 colors (indexed 0–3, 0 = brightest, 3 = darkest), one button. Games ("cassettes") are written in JavaScript against a small constrained drawing API. The project is currently in **Phase 1.5** — bitmap pipeline works; refactoring the worker into scoped factory modules before adding more cassette API in Phase 2.
 
-See `PLAN.md` for design decisions, the full cassette API spec, and the granular task list with phase checkboxes.
+See `PLAN.md` for design decisions, the full cassette API spec, and the granular task list with phase checkboxes. See `FACTORY-PLAN.md` for the in-flight worker-module refactor (graphics / sandbox / cassette / index split).
 
 ## Dev commands
 

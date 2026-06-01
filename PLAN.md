@@ -318,9 +318,13 @@ Each phase ends with something runnable.
 
 Shell spawns worker, sends a tick, worker returns a bitmap, shell renders it to canvas. No cassette API, no editor, no auth. Just the pipe working end to end.
 
+### Phase 1.5 — Worker module refactor
+
+Refactor `src/worker/index.ts` into scoped factory modules (`graphics`, `sandbox`, `cassette`, thin `index`) before adding more drawing primitives. Bundles input into `TickMessage`, moves `WIDTH`/`HEIGHT` to `src/shared/types.ts`. See `FACTORY-PLAN.md` for full design, rationale, and sketches.
+
 ### Phase 2 — Full cassette API
 
-All drawing functions implemented in the worker. Watchdog implemented. Shell game loop running at 30fps. A real one-button game running end to end.
+All drawing functions implemented in `src/worker/graphics.ts`. Watchdog implemented. Shell game loop running at 30fps. A real one-button game running end to end.
 
 ### Phase 3 — Shell and editor
 
@@ -376,7 +380,22 @@ Work top to bottom. One task = one evening or less. Check off as done.
   - types.ts exists but not yet imported — wire up in Phase 2
 - [x] Write hardcoded test cassette that draws something recognizable (not just solid color)
 
+### Phase 1.5 — Worker module refactor
+
+See `FACTORY-PLAN.md` for the full design, rationale, and implementation order.
+
+- [ ] Update `src/shared/types.ts` — add `Input` type and `WIDTH`/`HEIGHT` constants; fold input into `TickMessage`; remove standalone `'input'` message type
+- [ ] Create `src/worker/graphics.ts` — `createGraphics` factory exposing `clear`, `setPixel`, `pixels()`
+- [ ] Create `src/worker/sandbox.ts` — `evaluateCassette(source, api)` with `'use strict'`
+- [ ] Create `src/worker/cassette.ts` — `createCassette` factory exposing `api`, `load`, `runFrame`
+- [ ] Rewrite `src/worker/index.ts` as a thin orchestrator wiring the factories
+- [ ] Update `src/shell/index.ts` — key listeners that track input state locally; bundle the current `input` snapshot into each tick; import `WIDTH`/`HEIGHT` from shared
+- [ ] Verify `npm run build` compiles both tsconfigs cleanly
+- [ ] Smoke test: starter cassette renders and responds to input
+
 ### Phase 2 — Full cassette API
+
+All Phase 2 drawing primitives below land in `src/worker/graphics.ts` (created in Phase 1.5). The lifecycle hooks (`init`, `update`, `draw`) are already wired through `src/worker/cassette.ts`.
 
 - [ ] Implement getPixel() — reads value from buffer
 - [ ] Implement line() — Bresenham's line algorithm
@@ -387,9 +406,6 @@ Work top to bottom. One task = one evening or less. Check off as done.
 - [ ] Implement polyStroke() — with optional rotation and pivot point
 - [ ] Implement print() — bitmap font, minimal character set, uppercase + numbers + punctuation
 - [ ] Implement rnd()
-- [ ] Implement init(state), update(state, input), draw(state) lifecycle in worker
-- [ ] Implement keyboard input in shell: spacebar → a, track pressed/released/held state
-- [ ] Wire input through TickMessage to update() call in worker
 - [ ] Write test cassettes for each API function
 - [ ] Write a simple complete one-button game to validate full API
 
