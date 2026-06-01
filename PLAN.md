@@ -282,7 +282,7 @@ Both shell and worker compile to `dist/`, preserving the full `src/` subdirector
 ```
 src/shell/index.ts    →    dist/shell/index.js
 src/worker/index.ts   →    dist/worker/index.js
-src/shared/messages.ts →   dist/shared/messages.js  (compiled twice, once per tsconfig)
+src/shared/types.ts   →    dist/shared/types.js  (compiled twice, once per tsconfig)
 ```
 
 ### Directory structure
@@ -371,8 +371,8 @@ Work top to bottom. One task = one evening or less. Check off as done.
 - [x] Verify bitmap renders correctly at 64×64 in browser
 - [x] Write dev-server.js — static file server, no dependencies
 - [x] Write shared message types: BitmapMessage, CrashMessage, CodeMessage, StateMessage, TickMessage
-- [ ] Implement clear() in worker — fills buffer with color index
-- [ ] Implement setPixel() in worker — sets value at xy
+- [x] Implement clear() in worker — fills buffer with color index (now in `graphics.ts`)
+- [x] Implement setPixel() in worker — sets value at xy (now in `graphics.ts`)
 - [x] Refactor worker to respond to TickMessage (shell owns the loop)
 - [x] Implement shell game loop: setTimeout 33ms, send tick, render on response
 - [x] Implement watchdog in shell: 500ms timeout, terminates and respawns worker
@@ -384,14 +384,16 @@ Work top to bottom. One task = one evening or less. Check off as done.
 
 See `FACTORY-PLAN.md` for the full design, rationale, and implementation order.
 
-- [ ] Update `src/shared/types.ts` — add `Input` type and `WIDTH`/`HEIGHT` constants; fold input into `TickMessage`; remove standalone `'input'` message type
-- [ ] Create `src/worker/graphics.ts` — `createGraphics` factory exposing `clear`, `setPixel`, `pixels()`
-- [ ] Create `src/worker/sandbox.ts` — `evaluateCassette(source, api)` with `'use strict'`
-- [ ] Create `src/worker/cassette.ts` — `createCassette` factory exposing `api`, `load`, `runFrame`
-- [ ] Rewrite `src/worker/index.ts` as a thin orchestrator wiring the factories
-- [ ] Update `src/shell/index.ts` — key listeners that track input state locally; bundle the current `input` snapshot into each tick; import `WIDTH`/`HEIGHT` from shared
-- [ ] Verify `npm run build` compiles both tsconfigs cleanly
-- [ ] Smoke test: starter cassette renders and responds to input
+- [x] Update `src/shared/types.ts` — add `Input` type and `WIDTH`/`HEIGHT` constants; fold input into `TickMessage`; remove standalone `'input'` message type
+- [x] Create `src/worker/graphics.ts` — `createGraphics` factory exposing `clear`, `setPixel`, `pixels()`
+- [x] Create `src/worker/sandbox.ts` — `evaluateCassette(source, api)` with `'use strict'`
+- [x] Create `src/worker/cassette.ts` — `createCassette` factory exposing `api`, `load`, `runFrame`
+- [x] Rewrite `src/worker/index.ts` as a thin orchestrator wiring the factories
+- [x] Update `src/shell/index.ts` — key listeners that track input state locally; bundle the current `input` snapshot into each tick; import `WIDTH`/`HEIGHT` from shared
+  - also added shell-side bitmap validation (length check + `& 3` palette mask) per FACTORY-PLAN's security notes
+- [x] Verify `npm run build` compiles both tsconfigs cleanly
+- [x] Smoke test: starter cassette renders, tick loop runs (dot animates across canvas)
+- [x] Verify input path end to end — starter cassette reads `input.a` (button moves the dot vertically), confirms key → worker plumbing
 
 ### Phase 2 — Full cassette API
 
@@ -508,4 +510,4 @@ All Phase 2 drawing primitives below land in `src/worker/graphics.ts` (created i
 
 ---
 
-_Last updated: end of first dev session. Pipe working, gray square renders._
+_Last updated: Phase 1.5 complete. Worker factory refactor landed — graphics/sandbox/cassette split, input folded into ticks, shell bitmap validation. Render, tick loop, and input path all confirmed in browser. Ready for Phase 2 (full cassette API)._
