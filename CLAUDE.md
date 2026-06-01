@@ -51,6 +51,10 @@ Both compile to `dist/`, preserving `src/` directory structure. The `src/shared/
 
 Prettier config: no semicolons, single quotes, 80 char print width, 2-space indent. Format on save expected.
 
+## Commits
+
+Never add a Claude/Claude Code mention, attribution, or `Co-Authored-By` trailer to commit messages.
+
 ## Deployment
 
 Shell + worker → Cloudflare Pages (auto-deploys on push to `main`).  

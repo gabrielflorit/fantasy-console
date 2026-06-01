@@ -1,4 +1,9 @@
-import type { WorkerToShell } from '../shared/types.js'
+import {
+  type WorkerToShell,
+  type Input,
+  WIDTH,
+  HEIGHT,
+} from '../shared/types.js'
 import { starterCassette } from './starter.js'
 
 let canvas = document.getElementById('canvas') as HTMLCanvasElement
@@ -8,6 +13,27 @@ let worker: Worker
 let running = false
 let lastTick = 0
 let currentSource = starterCassette
+
+// Local input state; a snapshot is bundled into each tick.
+let input: Input = { a: false }
+let buttonKeys = new Set([' ', 'z', 'x', 'Enter'])
+
+// TODO: window-level listening is temporary. Once there's an editor,
+// input must be scoped to the focused preview (editor + preview will be
+// on screen at once). Still need canvas tap/pointer events for mobile.
+window.addEventListener('keydown', (e) => {
+  if (buttonKeys.has(e.key)) {
+    input.a = true
+    e.preventDefault()
+  }
+})
+
+window.addEventListener('keyup', (e) => {
+  if (buttonKeys.has(e.key)) {
+    input.a = false
+    e.preventDefault()
+  }
+})
 
 let palette = ['#f0f0f0', '#a8a8a8', '#4a4a4a', '#0d0d0d']
 
@@ -19,9 +45,12 @@ function hexToRgb(hex: string): [number, number, number] {
 }
 
 function renderBitmap(buffer: Uint8Array) {
-  let imageData = ctx.createImageData(64, 64)
+  if (!(buffer instanceof Uint8Array) || buffer.length !== WIDTH * HEIGHT)
+    return
+  let imageData = ctx.createImageData(WIDTH, HEIGHT)
   for (let i = 0; i < buffer.length; i++) {
-    let [r, g, b] = hexToRgb(palette[buffer[i]])
+    // Mask to 0–3 so a malformed bitmap can't index past the palette.
+    let [r, g, b] = hexToRgb(palette[buffer[i] & 3])
     imageData.data[i * 4] = r
     imageData.data[i * 4 + 1] = g
     imageData.data[i * 4 + 2] = b
@@ -30,6 +59,8 @@ function renderBitmap(buffer: Uint8Array) {
   ctx.putImageData(imageData, 0, 0)
 }
 
+// TODO: flat if/else dispatch is fine while there are two message
+// types; revisit (a lookup table?) as the protocol grows.
 function onWorkerMessage(e: MessageEvent) {
   let msg = e.data as WorkerToShell
   if (watchdog) {
@@ -40,6 +71,11 @@ function onWorkerMessage(e: MessageEvent) {
   if (msg.type === 'bitmap') {
     renderBitmap(msg.buffer)
     if (running) {
+      // Self-clocked loop: each tick yields exactly one render (above),
+      // and the next tick is scheduled to land ~33ms after this one
+      // started — so ticks are spaced 33ms (≈30fps). Only one tick is
+      // ever in flight, so a frame taking >33ms just stretches the
+      // period (fps drops) rather than piling up a backlog.
       let delay = Math.max(0, 33 - (performance.now() - lastTick))
       setTimeout(tick, delay)
     }
@@ -64,7 +100,7 @@ function tick() {
     spawnWorker()
     sendCode(currentSource)
   }, 500)
-  worker.postMessage({ type: 'tick' })
+  worker.postMessage({ type: 'tick', input: { ...input } })
 }
 
 function sendCode(source: string) {

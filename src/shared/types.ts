@@ -1,16 +1,21 @@
+// Console dimensions — single source of truth, shared by shell and worker.
+export const WIDTH = 64
+export const HEIGHT = 64
+
+// Input snapshot, bundled into each tick.
+export interface Input {
+  a: boolean
+}
+
 // Shell → Worker
 export interface TickMessage {
   type: 'tick'
+  input: Input
 }
 
 export interface CodeMessage {
   type: 'code'
   source: string
-}
-
-export interface InputMessage {
-  type: 'input'
-  a: boolean
 }
 
 // Worker → Shell
@@ -31,5 +36,5 @@ export interface StateMessage {
 }
 
 // Unions
-export type ShellToWorker = TickMessage | CodeMessage | InputMessage
+export type ShellToWorker = TickMessage | CodeMessage
 export type WorkerToShell = BitmapMessage | CrashMessage | StateMessage
