@@ -20,7 +20,7 @@ let buttonKeys = new Set([' ', 'z', 'x', 'Enter'])
 
 // TODO: window-level listening is temporary. Once there's an editor,
 // input must be scoped to the focused preview (editor + preview will be
-// on screen at once). Still need canvas tap/pointer events for mobile.
+// on screen at once).
 window.addEventListener('keydown', (e) => {
   if (buttonKeys.has(e.key)) {
     input.a = true
@@ -33,6 +33,32 @@ window.addEventListener('keyup', (e) => {
     input.a = false
     e.preventDefault()
   }
+})
+
+// Tap anywhere on the page = the one button — the canvas is centered
+// with empty space above and below, and tapping there should still
+// count (so a thumb on a phone doesn't have to cover the canvas).
+// Pointer events unify mouse and touch; pointercancel covers the OS
+// yanking the touch away (e.g. a system gesture) so the button can't
+// get stuck held.
+window.addEventListener('pointerdown', () => {
+  input.a = true
+})
+window.addEventListener('pointerup', () => {
+  input.a = false
+})
+window.addEventListener('pointercancel', () => {
+  input.a = false
+})
+
+// touch-action: none already suppresses scroll/zoom, but iOS Safari
+// still needs an explicit preventDefault on non-passive touch listeners
+// to fully kill scroll bleed and double-tap zoom.
+window.addEventListener('touchstart', (e) => e.preventDefault(), {
+  passive: false,
+})
+window.addEventListener('touchmove', (e) => e.preventDefault(), {
+  passive: false,
 })
 
 let palette = ['#f0f0f0', '#a8a8a8', '#4a4a4a', '#0d0d0d']

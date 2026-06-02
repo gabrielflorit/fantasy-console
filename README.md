@@ -88,6 +88,37 @@ Open `http://localhost:3000` in the Mac browser.
 
 ---
 
+## Testing on a real phone
+
+The dev server runs inside the VM and `localhost:3000` is only forwarded to the Mac's loopback, so a phone can't reach it directly. A Cloudflare quick tunnel sidesteps this: it dials **out** from the VM to Cloudflare's edge and hands back a public HTTPS URL — no inbound port, no router config, no Lima port-forwarding.
+
+This is _not_ a deploy. It's an ephemeral tunnel to the local dev server that disappears when you stop it. Different thing from `wrangler deploy`.
+
+Install the binary once (inside the VM):
+
+```bash
+mkdir -p ~/.local/bin
+curl -fL -o ~/.local/bin/cloudflared \
+  https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64
+chmod +x ~/.local/bin/cloudflared
+```
+
+With `npm run dev` and `node dev-server.js` already running, start the tunnel in a third terminal:
+
+```bash
+cloudflared tunnel --url http://localhost:3000
+```
+
+It prints a `https://<random>.trycloudflare.com` URL — open that on the phone. SSE auto-reload works over the tunnel, so rebuilds refresh the phone too. `Ctrl+C` to stop.
+
+Notes:
+
+- Each run gets a **new** random URL — quick tunnels are ephemeral, no account or login.
+- The URL is unguessable but unauthenticated. Fine for a throwaway dev session; don't post it publicly.
+- It's HTTPS, so secure-context APIs (WebAuthn, Phase 5) work over it — LAN HTTP would not.
+
+---
+
 ## Project structure
 
 ```
@@ -149,6 +180,7 @@ npm install -g wrangler
 | typescript | Lima VM   | `npm install -g typescript`             |
 | prettier   | Lima VM   | `npm install -g prettier`               |
 | wrangler   | Lima VM   | `npm install -g wrangler` (when needed) |
+| cloudflared| Lima VM   | binary in `~/.local/bin` (phone testing)|
 | CodeMirror | `vendor/` | downloaded once, committed              |
 
 No `node_modules` in this project. No runtime dependencies.

@@ -424,6 +424,7 @@ All Phase 2 drawing primitives below land in `src/worker/graphics.ts` (created i
 - [ ] Implement RUN view skeleton: full-screen canvas
 - [ ] Implement navigation between views
 - [ ] Implement play/pause button in CODE view
+- [ ] Scope mobile RUN styles to the RUN view — Phase 8 put `touch-action: none` + `overflow: hidden` on `body` (the whole page is RUN mode today). Once CODE/SHELF exist, move these onto the RUN view container so the editor and feed can scroll on mobile
 
 ### Phase 4 — Numeric scrubbing
 
@@ -472,13 +473,13 @@ All Phase 2 drawing primitives below land in `src/worker/graphics.ts` (created i
 
 ### Phase 8 — Mobile RUN
 
-- [ ] Scale canvas to fill mobile viewport preserving aspect ratio
-- [ ] Implement touch input: pointerdown anywhere on canvas → a = true
-- [ ] Add touch-action: none to canvas and body
-- [ ] Add passive: false to touchstart and touchmove listeners
-- [ ] Add viewport meta tag: user-scalable=no
+- [x] Scale canvas to fill mobile viewport preserving aspect ratio
+- [x] Implement touch input: pointerdown anywhere on canvas → a = true
+- [x] Add touch-action: none to canvas and body
+- [x] Add passive: false to touchstart and touchmove listeners
+- [x] Add viewport meta tag: user-scalable=no
 - [ ] Test on iOS Safari and Chrome Android
-- [ ] Implement "edit on desktop" message in CODE view on mobile
+- [ ] Implement "edit on desktop" message in CODE view on mobile (blocked — CODE view is Phase 3)
 
 ### Phase 9 — Polish
 
