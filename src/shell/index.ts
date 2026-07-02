@@ -1,6 +1,7 @@
 import {
   type WorkerToShell,
   type Input,
+  type Cassette,
   WIDTH,
   HEIGHT,
 } from '../shared/types.js'
@@ -12,7 +13,7 @@ let watchdog: ReturnType<typeof setTimeout> | null = null
 let worker: Worker
 let running = false
 let lastTick = 0
-let currentSource = starterCassette
+let currentCassette = starterCassette
 
 // Local input state; a snapshot is bundled into each tick.
 let input: Input = { a: false }
@@ -70,13 +71,18 @@ function hexToRgb(hex: string): [number, number, number] {
   return [r, g, b]
 }
 
+// Precomputed index → [r,g,b] lookup. There are only 4 colors but 4096
+// pixels per frame, so parsing hex per pixel is pure waste — resolve each
+// palette entry once here. Rebuild this if the palette ever changes.
+let paletteRgb = palette.map(hexToRgb)
+
 function renderBitmap(buffer: Uint8Array) {
   if (!(buffer instanceof Uint8Array) || buffer.length !== WIDTH * HEIGHT)
     return
   let imageData = ctx.createImageData(WIDTH, HEIGHT)
   for (let i = 0; i < buffer.length; i++) {
     // Mask to 0–3 so a malformed bitmap can't index past the palette.
-    let [r, g, b] = hexToRgb(palette[buffer[i] & 3])
+    let [r, g, b] = paletteRgb[buffer[i] & 3]
     imageData.data[i * 4] = r
     imageData.data[i * 4 + 1] = g
     imageData.data[i * 4 + 2] = b
@@ -87,8 +93,8 @@ function renderBitmap(buffer: Uint8Array) {
 
 // TODO: flat if/else dispatch is fine while there are two message
 // types; revisit (a lookup table?) as the protocol grows.
-function onWorkerMessage(e: MessageEvent) {
-  let msg = e.data as WorkerToShell
+function onWorkerMessage(e: MessageEvent<WorkerToShell>) {
+  let msg = e.data
   if (watchdog) {
     clearTimeout(watchdog)
     watchdog = null
@@ -124,14 +130,14 @@ function tick() {
     console.error('worker hung, respawning')
     running = false
     spawnWorker()
-    sendCode(currentSource)
+    loadCassette(currentCassette)
   }, 500)
   worker.postMessage({ type: 'tick', input: { ...input } })
 }
 
-function sendCode(source: string) {
-  currentSource = source
-  worker.postMessage({ type: 'code', source })
+function loadCassette(cassette: Cassette) {
+  currentCassette = cassette
+  worker.postMessage({ type: 'load', cassette })
   if (!running) {
     running = true
     tick()
@@ -139,4 +145,4 @@ function sendCode(source: string) {
 }
 
 spawnWorker()
-sendCode(starterCassette)
+loadCassette(starterCassette)

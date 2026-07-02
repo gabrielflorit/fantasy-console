@@ -3,10 +3,7 @@
 // missing `let` would otherwise bind to `self` and persist into the next
 // load. See FACTORY-PLAN.md; the sandbox is not the security boundary.
 
-export function evaluateCassette(
-  source: string,
-  api: Record<string, unknown>,
-) {
-  let body = `'use strict';\n${source}`
+export function evaluateCassette(code: string, api: Record<string, unknown>) {
+  let body = `'use strict';\n${code}`
   new Function(...Object.keys(api), body)(...Object.values(api))
 }

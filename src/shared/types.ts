@@ -7,15 +7,21 @@ export interface Input {
   a: boolean
 }
 
+// A cassette: the game bundle. For now just code; later this grows room
+// for palette, music, sfx, title, cover art, ….
+export interface Cassette {
+  code: string
+}
+
 // Shell → Worker
 export interface TickMessage {
   type: 'tick'
   input: Input
 }
 
-export interface CodeMessage {
-  type: 'code'
-  source: string
+export interface LoadMessage {
+  type: 'load'
+  cassette: Cassette
 }
 
 // Worker → Shell
@@ -36,5 +42,5 @@ export interface StateMessage {
 }
 
 // Unions
-export type ShellToWorker = TickMessage | CodeMessage
+export type ShellToWorker = TickMessage | LoadMessage
 export type WorkerToShell = BitmapMessage | CrashMessage | StateMessage

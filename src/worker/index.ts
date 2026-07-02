@@ -1,17 +1,17 @@
 import { type ShellToWorker, WIDTH, HEIGHT } from '../shared/types.js'
 import { createGraphics } from './graphics.js'
-import { createCassette } from './cassette.js'
+import { createTapeDeck } from './tapeDeck.js'
 
 let graphics = createGraphics(WIDTH, HEIGHT)
-let cassette = createCassette()
+let tapeDeck = createTapeDeck()
 
-self.onmessage = (e: MessageEvent) => {
-  let msg = e.data as ShellToWorker
+self.onmessage = (e: MessageEvent<ShellToWorker>) => {
+  let msg = e.data
   try {
-    if (msg.type === 'code') {
-      cassette.load(msg.source, graphics.api)
+    if (msg.type === 'load') {
+      tapeDeck.load(msg.cassette, graphics.api)
     } else if (msg.type === 'tick') {
-      cassette.runFrame(msg.input)
+      tapeDeck.runFrame(msg.input)
       self.postMessage({ type: 'bitmap', buffer: graphics.pixels().slice() })
     }
   } catch (err) {
