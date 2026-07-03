@@ -101,7 +101,6 @@ All functions are injected into the worker scope before user code runs.
 ```
 clear([color=3])                              clear screen to color
 setPixel(x, y, [color=0])                  set pixel at xy
-getPixel(x, y)                             return color index at xy
 line(x1, y1, x2, y2, [color=0])           draw line
 rectStroke(x, y, w, h, [color=0])         stroke rectangle
 rectFill(x, y, w, h, [color=0])           fill rectangle
@@ -399,7 +398,6 @@ See `FACTORY-PLAN.md` for the full design, rationale, and implementation order.
 
 All Phase 2 drawing primitives below land in `src/worker/graphics.ts` (created in Phase 1.5). The lifecycle hooks (`init`, `update`, `draw`) are already wired through `src/worker/cassette.ts`.
 
-- [ ] Implement getPixel() — reads value from buffer
 - [ ] Implement line() — Bresenham's line algorithm
 - [ ] Implement rectStroke()
 - [ ] Implement rectFill()
