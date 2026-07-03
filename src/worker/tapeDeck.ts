@@ -46,8 +46,9 @@ export function createTapeDeck() {
   function load(cassette: Cassette, extraApi: Record<string, unknown>) {
     clearFns()
     evaluateCassette(cassette.code, { ...extraApi, ...lifecycle })
-    // State persists across hot reloads unless init's source changed.
-    // See FACTORY-PLAN.md for the rule's rationale.
+    // State persists across hot reloads unless init's source changed: editing
+    // update/draw keeps the game running with its state, while changing init
+    // gives a clean reset.
     let src = initFn?.toString() ?? null
     if (src !== lastInitSource) {
       state = {}

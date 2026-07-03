@@ -1,6 +1,7 @@
 // Owns the bitmap and the drawing primitives injected into cassette code.
 // `pixels` is a live read handle — the caller decides transport (slice,
-// transfer, hash, …). See FACTORY-PLAN.md for why a getter over a sealed copy.
+// transfer, hash, …). A getter rather than a pre-sliced copy keeps that choice
+// with the caller: adopting transferables later needs no change here.
 //
 // The primitives are injected into cassette scope as standalone locals, so
 // they must not rely on `this` — cross-calls go through the closure helper

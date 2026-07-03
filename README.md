@@ -2,7 +2,7 @@
 
 A minimal JavaScript fantasy console. 64×64, 4 colors, one button.
 
-See `PLAN.md` for all design decisions and the task list. `FACTORY-PLAN.md` covers the worker-module refactor currently in flight.
+See `PLAN.md` for all design decisions, architecture, and the task list.
 
 ---
 
@@ -116,36 +116,6 @@ Notes:
 - Each run gets a **new** random URL — quick tunnels are ephemeral, no account or login.
 - The URL is unguessable but unauthenticated. Fine for a throwaway dev session; don't post it publicly.
 - It's HTTPS, so secure-context APIs (WebAuthn, Phase 5) work over it — LAN HTTP would not.
-
----
-
-## Project structure
-
-```
-fantasy-console/
-  index.html              entry point, served from project root
-  dev-server.js           local static file server, plain Node, no dependencies
-  package.json            scripts only, no dependencies
-  tsconfig.json           root TypeScript config, extended by shell and worker
-  tsconfig.shell.json     shell config — targets DOM lib
-  tsconfig.worker.json    worker config — targets WebWorker lib
-  .prettierrc             formatter config
-  .gitignore
-  PLAN.md                 design decisions, architecture, full task list
-  src/
-    shared/       message types, API shapes, constants
-    shell/        browser shell code
-    worker/       web worker code — cassette runtime
-    server/       Cloudflare Worker API — auth, storage
-  dist/                   compiled output — do not edit
-  vendor/                 vendored dependencies (CodeMirror) — committed, never auto-updated
-```
-
----
-
-## Architecture in one paragraph
-
-The shell runs in the browser. It owns the game loop — every 33ms it sends a tick message to a web worker. The worker runs user-submitted cassette code, calls the drawing API, populates a bitmap buffer, and sends it back. The shell renders the bitmap to a canvas. If the worker doesn't respond within 500ms the shell kills and respawns it. User code never touches the DOM, never makes network requests (blocked by CSP), and can't reach the shell's state.
 
 ---
 

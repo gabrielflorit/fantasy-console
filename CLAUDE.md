@@ -1,63 +1,59 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Operating manual for Claude Code in this repo — conventions, commands, and
+gotchas. The design source of truth is `PLAN.md`; human/machine setup is in
+`README.md`. This file points to those rather than restating them.
 
 ## What this is
 
-A minimal JavaScript fantasy console running in the browser. 64×64 pixels, 4 colors (indexed 0–3, 0 = brightest, 3 = darkest), one button. Games ("cassettes") are written in JavaScript against a small constrained drawing API. The project is currently in **Phase 2** — the worker factory refactor (Phase 1.5) is complete; now adding the full cassette drawing API.
-
-See `PLAN.md` for design decisions, the full cassette API spec, and the granular task list with phase checkboxes. See `FACTORY-PLAN.md` for the in-flight worker-module refactor (graphics / sandbox / cassette / index split).
+A minimal JavaScript fantasy console in the browser: 64×64 pixels, 4 colors
+(indexed 0–3, 0 = brightest, 3 = darkest), one button. Games ("cassettes") are
+JavaScript written against a small drawing API. Current work: the drawing API
+(Phase 2) — see `PLAN.md` §11 for live task status.
 
 ## Dev commands
 
 ```bash
-npm run dev      # tsc watch mode for both shell and worker tsconfigs (run in Terminal 1)
-node dev-server.js  # static file server at localhost:3000 with auto-reload (Terminal 2)
-npm run build    # compile both tsconfigs + copy index.html to dist/
-wrangler deploy  # deploy Cloudflare Worker (global install, run from Lima VM only)
+npm run dev         # tsc watch for both shell + worker tsconfigs (Terminal 1)
+node dev-server.js  # static file server at localhost:3000, auto-reload (Terminal 2)
+npm run build       # compile both tsconfigs + copy index.html to dist/
+wrangler deploy     # deploy the Cloudflare Worker (from the Lima VM only)
 ```
 
-No `npm install` needed — zero runtime npm dependencies. Global tools: `tsc`, `prettier`, `wrangler`.
+No `npm install` — zero runtime dependencies. Global tools: `tsc`, `prettier`,
+`wrangler`. Dev runs in a Lima VM on a Mac; `localhost:3000` is opened from the
+Mac browser. Full setup: `README.md`.
 
-## Architecture
+## Architecture (orientation — full detail in `PLAN.md` §2–§3)
 
-### Shell ↔ Worker protocol
+The **shell** (`src/shell/`) runs in the browser and owns the game loop; it
+never runs cassette code. The **worker** (`src/worker/`) runs untrusted cassette
+code in a Web Worker, draws into a `Uint8Array` bitmap, and posts it back for
+the shell to render. They communicate only via `postMessage`; message types
+live in `src/shared/types.ts`.
 
-The shell (`src/shell/index.ts`) owns the game loop. Every 33ms it sends a `TickMessage` to a Web Worker (`src/worker/index.ts`). The worker runs cassette code, populates a `Uint8Array` bitmap (64×64 = 4096 bytes, 1 byte per pixel = color index), and posts it back as a `BitmapMessage`. The shell renders it to canvas via `putImageData`. Message types are defined in `src/shared/types.ts`.
+Worker modules: `graphics` (bitmap + drawing primitives), `sandbox` (evaluates
+cassette code with the API injected), `tapeDeck` (lifecycle + hot reload),
+`index` (message dispatch). Cassettes register three functions — `init(state)`,
+`update(state, input)`, `draw(state)`.
 
-If the worker doesn't respond within 500ms, the shell's watchdog terminates and respawns it.
+## TypeScript config
 
-### Worker sandbox
-
-User cassette code is `eval`'d inside the worker via `new Function(...)` with only the cassette API functions injected into scope. No DOM access, no network (blocked by CSP `connect-src 'none'`), no access to shell state.
-
-### Cassette lifecycle
-
-The worker expects cassette code to call three registration functions:
-- `init(fn)` — called once on load/reset; mutate `state`
-- `update(fn)` — called each tick before draw; receives `(state, input)` 
-- `draw(fn)` — called each tick after update; receives `(state)`
-
-### TypeScript config
-
-Three tsconfigs with a split-lib strategy — shell code needs DOM types, worker code needs WebWorker types:
-- `tsconfig.json` — root; shared `target`, `module`, `strict`, `sourceMap`
-- `tsconfig.shell.json` — extends root; `lib: [ES2022, DOM]`
-- `tsconfig.worker.json` — extends root; `lib: [ES2022, WebWorker]`
-
-Both compile to `dist/`, preserving `src/` directory structure. The `src/shared/` module is compiled twice (once per tsconfig). The `dist/` directory is not committed.
+Three tsconfigs, split by lib (shell needs DOM, worker needs WebWorker):
+`tsconfig.json` (root — target/module/strict), `tsconfig.shell.json`
+(`lib: [ES2022, DOM]`), `tsconfig.worker.json` (`lib: [ES2022, WebWorker]`).
+Both emit to `dist/` (not committed); `src/shared/` compiles under both.
 
 ## Code style
 
-Prettier config: no semicolons, single quotes, 80 char print width, 2-space indent. Format on save expected.
+Prettier: no semicolons, single quotes, 80-char width, 2-space indent. Format
+on save.
 
 ## Commits
 
-Never add a Claude/Claude Code mention, attribution, or `Co-Authored-By` trailer to commit messages.
+Never add a Claude/Claude Code mention, attribution, or `Co-Authored-By` trailer.
 
 ## Deployment
 
-Shell + worker → Cloudflare Pages (auto-deploys on push to `main`).  
-Server → Cloudflare Worker (`wrangler deploy` from Lima VM).
-
-The dev environment runs inside a Lima VM on Mac. `localhost:3000` is accessed from the Mac browser.
+Shell + worker → Cloudflare Pages (auto-deploys on push to `main`). Server →
+Cloudflare Worker via `wrangler deploy` from the Lima VM.

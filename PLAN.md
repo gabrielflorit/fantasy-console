@@ -45,7 +45,7 @@ SHELL (Cloudflare Pages — static)
 
 WORKER (Web Worker — runs user code)
   ├── Purely reactive — no loop, no setInterval
-  ├── Receives: { type: 'code', source: string } → evals, calls init(state)
+  ├── Receives: { type: 'load', cassette: { code } } → evals, calls init(state)
   ├── Receives: { type: 'tick', input } → calls update(state, input), draw(state)
   ├── draw() populates a Uint8Array bitmap (64×64 = 4096 bytes, 1 byte per pixel)
   ├── Sends: { type: 'bitmap', buffer: Uint8Array } after each tick
@@ -59,7 +59,7 @@ SHELL GAME LOOP
   → naturally self-throttles if worker is slow, never queues up ticks
 
 SHELL ← WORKER PROTOCOL
-  shell → worker: CodeMessage | TickMessage
+  shell → worker: LoadMessage | TickMessage
   worker → shell: BitmapMessage | CrashMessage | StateMessage
 
 WATCHDOG (shell side)
@@ -319,7 +319,7 @@ Shell spawns worker, sends a tick, worker returns a bitmap, shell renders it to 
 
 ### Phase 1.5 — Worker module refactor
 
-Refactor `src/worker/index.ts` into scoped factory modules (`graphics`, `sandbox`, `cassette`, thin `index`) before adding more drawing primitives. Bundles input into `TickMessage`, moves `WIDTH`/`HEIGHT` to `src/shared/types.ts`. See `FACTORY-PLAN.md` for full design, rationale, and sketches.
+Refactor `src/worker/index.ts` into scoped factory modules (`graphics`, `sandbox`, `tapeDeck`, thin `index`) before adding more drawing primitives. Bundles input into `TickMessage`, moves `WIDTH`/`HEIGHT` to `src/shared/types.ts`.
 
 ### Phase 2 — Full cassette API
 
@@ -369,7 +369,7 @@ Work top to bottom. One task = one evening or less. Check off as done.
 - [x] Write shell canvas renderer: receives bitmap, calls putImageData, expands palette to RGBA
 - [x] Verify bitmap renders correctly at 64×64 in browser
 - [x] Write dev-server.js — static file server, no dependencies
-- [x] Write shared message types: BitmapMessage, CrashMessage, CodeMessage, StateMessage, TickMessage
+- [x] Write shared message types: BitmapMessage, CrashMessage, LoadMessage, StateMessage, TickMessage
 - [x] Implement clear() in worker — fills buffer with color index (now in `graphics.ts`)
 - [x] Implement setPixel() in worker — sets value at xy (now in `graphics.ts`)
 - [x] Refactor worker to respond to TickMessage (shell owns the loop)
@@ -381,15 +381,13 @@ Work top to bottom. One task = one evening or less. Check off as done.
 
 ### Phase 1.5 — Worker module refactor
 
-See `FACTORY-PLAN.md` for the full design, rationale, and implementation order.
-
 - [x] Update `src/shared/types.ts` — add `Input` type and `WIDTH`/`HEIGHT` constants; fold input into `TickMessage`; remove standalone `'input'` message type
 - [x] Create `src/worker/graphics.ts` — `createGraphics` factory exposing `clear`, `setPixel`, `pixels()`
 - [x] Create `src/worker/sandbox.ts` — `evaluateCassette(source, api)` with `'use strict'`
-- [x] Create `src/worker/cassette.ts` — `createCassette` factory exposing `api`, `load`, `runFrame`
+- [x] Create `src/worker/tapeDeck.ts` — `createTapeDeck` factory exposing `load` and `runFrame`, with the `Lifecycle` registration hooks (`init`/`update`/`draw`)
 - [x] Rewrite `src/worker/index.ts` as a thin orchestrator wiring the factories
 - [x] Update `src/shell/index.ts` — key listeners that track input state locally; bundle the current `input` snapshot into each tick; import `WIDTH`/`HEIGHT` from shared
-  - also added shell-side bitmap validation (length check + `& 3` palette mask) per FACTORY-PLAN's security notes
+  - also added shell-side bitmap validation (length check + `& 3` palette mask), per the security model (§3)
 - [x] Verify `npm run build` compiles both tsconfigs cleanly
 - [x] Smoke test: starter cassette renders, tick loop runs (dot animates across canvas)
 - [x] Verify input path end to end — starter cassette reads `input.a` (button moves the dot vertically), confirms key → worker plumbing
@@ -398,9 +396,9 @@ See `FACTORY-PLAN.md` for the full design, rationale, and implementation order.
 
 All Phase 2 drawing primitives below land in `src/worker/graphics.ts` (created in Phase 1.5). The lifecycle hooks (`init`, `update`, `draw`) are already wired through `src/worker/cassette.ts`.
 
-- [ ] Implement line() — Bresenham's line algorithm
-- [ ] Implement rectStroke()
-- [ ] Implement rectFill()
+- [x] Implement line() — Bresenham's line algorithm
+- [x] Implement rectStroke()
+- [x] Implement rectFill()
 - [ ] Implement circStroke() — Bresenham's circle algorithm
 - [ ] Implement circFill()
 - [ ] Implement polyStroke() — with optional rotation and pivot point
@@ -416,7 +414,7 @@ All Phase 2 drawing primitives below land in `src/worker/graphics.ts` (created i
 - [ ] Implement Redux-lite store: getState, dispatch, subscribe, ~50 lines
 - [ ] Implement CODE view skeleton: split pane layout, editor left, canvas right
 - [ ] Integrate CodeMirror into CODE view — renders in editor pane
-- [ ] Wire CodeMirror content to worker: on change, debounce 300ms, send CodeMessage
+- [ ] Wire CodeMirror content to worker: on change, debounce 300ms, send LoadMessage
 - [ ] Implement state pane: JSON.stringify(state) rendered below editor, updated each tick
 - [ ] Implement SHELF view skeleton: placeholder cards
 - [ ] Implement RUN view skeleton: full-screen canvas
@@ -509,4 +507,4 @@ All Phase 2 drawing primitives below land in `src/worker/graphics.ts` (created i
 
 ---
 
-_Last updated: Phase 1.5 complete. Worker factory refactor landed — graphics/sandbox/cassette split, input folded into ticks, shell bitmap validation. Render, tick loop, and input path all confirmed in browser. Ready for Phase 2 (full cassette API)._
+_Phase 2 in progress — building the cassette drawing API (see §11 for task status). Next milestone after it: the editor (Phase 3)._
