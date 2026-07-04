@@ -409,18 +409,25 @@ All Phase 2 drawing primitives below land in `src/worker/graphics.ts` (created i
 
 ### Phase 3 — Shell and editor
 
+MVP-first sequencing: the CODE view ships against a plain `<textarea>` so the
+live-edit loop (edit → debounce → reload → preview + state pane) works end to
+end before any infrastructure lands. CodeMirror, the router, and the store are
+later swaps/additions onto that working loop, not prerequisites for it.
+
 - [ ] Vendor CodeMirror 6 — download, audit, commit to vendor/
 - [ ] Implement basic router: hashchange listener, map routes to view functions
 - [ ] Implement Redux-lite store: getState, dispatch, subscribe, ~50 lines
-- [ ] Implement CODE view skeleton: split pane layout, editor left, canvas right
-- [ ] Integrate CodeMirror into CODE view — renders in editor pane
-- [ ] Wire CodeMirror content to worker: on change, debounce 300ms, send LoadMessage
-- [ ] Implement state pane: JSON.stringify(state) rendered below editor, updated each tick
+- [x] Implement CODE view skeleton: split pane layout, `<textarea>` editor left, preview canvas + state pane right
+- [ ] Swap CodeMirror into the CODE view editor pane, replacing the `<textarea>`
+- [x] Wire editor content to worker: on change, debounce 300ms, send LoadMessage
+  - the editor's textarea is the single source of the cassette code — boot and edits both flow through one `loadFromEditor` bridge, while `loadCassette(cassette)` stays generic for later RUN/server loads
+- [x] Implement state pane: `JSON.stringify(state)` rendered in the side pane below the preview, updated each tick
+  - worker now emits `StateMessage` each tick (it never did before); non-serializable state skips the pane update rather than crashing the frame
 - [ ] Implement SHELF view skeleton: placeholder cards
 - [ ] Implement RUN view skeleton: full-screen canvas
 - [ ] Implement navigation between views
 - [ ] Implement play/pause button in CODE view
-- [ ] Scope mobile RUN styles to the RUN view — Phase 8 put `touch-action: none` + `overflow: hidden` on `body` (the whole page is RUN mode today). Once CODE/SHELF exist, move these onto the RUN view container so the editor and feed can scroll on mobile
+- [ ] Scope mobile RUN styles to the RUN view — the `touch-action: none` + `overflow: hidden` body styles were dropped when `index.html` became the CODE view; reintroduce them scoped to the RUN view container (not `body`) when RUN lands, so the editor and feed can still scroll on mobile
 
 ### Phase 4 — Numeric scrubbing
 
@@ -507,4 +514,4 @@ All Phase 2 drawing primitives below land in `src/worker/graphics.ts` (created i
 
 ---
 
-_Phase 2 in progress — building the cassette drawing API (see §11 for task status). Next milestone after it: the editor (Phase 3)._
+_Phase 3 in progress — the CODE view's live-edit loop is running against a `<textarea>` (edit → debounce → reload → preview + state pane). Still open: a few Phase 2 primitives (`circStroke`, `circFill`, `polyStroke`, `print`, `rnd`) and the rest of Phase 3 (router, store, CodeMirror swap, SHELF/RUN skeletons). See §11 for live task status._

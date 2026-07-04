@@ -13,6 +13,13 @@ self.onmessage = (e: MessageEvent<ShellToWorker>) => {
     } else if (msg.type === 'tick') {
       tapeDeck.runFrame(msg.input)
       self.postMessage({ type: 'bitmap', buffer: graphics.pixels().slice() })
+      try {
+        self.postMessage({ type: 'state', data: tapeDeck.getState() })
+      } catch {
+        // State isn't structured-cloneable — the cassette violated the
+        // serializable-state rule (a function/class instance on state).
+        // Skip the state-pane update rather than crash the frame.
+      }
     }
   } catch (err) {
     let e = err as Error

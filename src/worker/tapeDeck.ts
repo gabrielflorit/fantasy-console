@@ -62,5 +62,11 @@ export function createTapeDeck() {
     drawFn?.(state)
   }
 
-  return { load, runFrame }
+  // Current game state, for the CODE view's state pane. Returned live (not
+  // copied); the shell posts it, which structured-clones it on the way out.
+  function getState() {
+    return state
+  }
+
+  return { load, runFrame, getState }
 }

@@ -9,6 +9,9 @@ import { starterCassette } from './starter.js'
 
 let canvas = document.getElementById('canvas') as HTMLCanvasElement
 let ctx = canvas.getContext('2d')!
+let editor = document.getElementById('editor') as HTMLTextAreaElement
+let statePane = document.getElementById('state') as HTMLPreElement
+
 let watchdog: ReturnType<typeof setTimeout> | null = null
 let worker: Worker
 let running = false
@@ -19,30 +22,27 @@ let currentCassette = starterCassette
 let input: Input = { a: false }
 let buttonKeys = new Set([' ', 'z', 'x', 'Enter'])
 
-// TODO: window-level listening is temporary. Once there's an editor,
-// input must be scoped to the focused preview (editor + preview will be
-// on screen at once).
+// Keyboard drives the preview, but only when focus is NOT in the editor —
+// otherwise pressing space while typing would fire the button.
 window.addEventListener('keydown', (e) => {
+  if (document.activeElement === editor) return
   if (buttonKeys.has(e.key)) {
     input.a = true
     e.preventDefault()
   }
 })
-
 window.addEventListener('keyup', (e) => {
+  if (document.activeElement === editor) return
   if (buttonKeys.has(e.key)) {
     input.a = false
     e.preventDefault()
   }
 })
 
-// Tap anywhere on the page = the one button — the canvas is centered
-// with empty space above and below, and tapping there should still
-// count (so a thumb on a phone doesn't have to cover the canvas).
-// Pointer events unify mouse and touch; pointercancel covers the OS
-// yanking the touch away (e.g. a system gesture) so the button can't
-// get stuck held.
-window.addEventListener('pointerdown', () => {
+// Pointer input is scoped to the preview canvas: pressing starts on the
+// canvas, but release/cancel are tracked on the window so the button can't
+// get stuck held if the pointer leaves the canvas before lifting.
+canvas.addEventListener('pointerdown', () => {
   input.a = true
 })
 window.addEventListener('pointerup', () => {
@@ -50,16 +50,6 @@ window.addEventListener('pointerup', () => {
 })
 window.addEventListener('pointercancel', () => {
   input.a = false
-})
-
-// touch-action: none already suppresses scroll/zoom, but iOS Safari
-// still needs an explicit preventDefault on non-passive touch listeners
-// to fully kill scroll bleed and double-tap zoom.
-window.addEventListener('touchstart', (e) => e.preventDefault(), {
-  passive: false,
-})
-window.addEventListener('touchmove', (e) => e.preventDefault(), {
-  passive: false,
 })
 
 let palette = ['#f0f0f0', '#a8a8a8', '#4a4a4a', '#0d0d0d']
@@ -91,8 +81,10 @@ function renderBitmap(buffer: Uint8Array) {
   ctx.putImageData(imageData, 0, 0)
 }
 
-// TODO: flat if/else dispatch is fine while there are two message
-// types; revisit (a lookup table?) as the protocol grows.
+function renderState(data: Record<string, unknown>) {
+  statePane.textContent = JSON.stringify(data, null, 2)
+}
+
 function onWorkerMessage(e: MessageEvent<WorkerToShell>) {
   let msg = e.data
   if (watchdog) {
@@ -111,6 +103,8 @@ function onWorkerMessage(e: MessageEvent<WorkerToShell>) {
       let delay = Math.max(0, 33 - (performance.now() - lastTick))
       setTimeout(tick, delay)
     }
+  } else if (msg.type === 'state') {
+    renderState(msg.data)
   } else if (msg.type === 'crash') {
     console.error('worker crash:', msg.message)
     console.error(msg.stack)
@@ -144,5 +138,22 @@ function loadCassette(cassette: Cassette) {
   }
 }
 
+// The editor's textarea is the single source of the cassette code. Boot and
+// live edit both flow through this one bridge; loadCassette stays generic so
+// RUN and server-loaded cassettes (later phases) can reuse it directly.
+function loadFromEditor() {
+  loadCassette({ code: editor.value })
+}
+
+// Live edit: reload the preview 300ms after the last keystroke. The tape
+// deck preserves game state across reloads unless init's source changed,
+// so editing update/draw keeps the running game; editing init resets it.
+let reloadTimer: ReturnType<typeof setTimeout> | null = null
+editor.addEventListener('input', () => {
+  if (reloadTimer) clearTimeout(reloadTimer)
+  reloadTimer = setTimeout(loadFromEditor, 300)
+})
+
+editor.value = starterCassette.code
 spawnWorker()
-loadCassette(starterCassette)
+loadFromEditor()
