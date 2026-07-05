@@ -6,10 +6,10 @@ gotchas. The design source of truth is `PLAN.md`; human/machine setup is in
 
 ## What this is
 
-A minimal JavaScript fantasy console in the browser: 64×64 pixels, 4 colors
-(indexed 0–3, 0 = brightest, 3 = darkest), one button. Games ("cassettes") are
-JavaScript written against a small drawing API. Current work: the drawing API
-(Phase 2) — see `PLAN.md` §11 for live task status.
+A minimal browser fantasy console — 64×64 pixels, 4 colors, one button; games
+("cassettes") are JavaScript against a small drawing API, shown in a "desk room"
+shell. `PLAN.md` is the full definition: §1 (what it is), §4 (API), §7 (the room),
+§11 (current phase + task status).
 
 ## Dev commands
 

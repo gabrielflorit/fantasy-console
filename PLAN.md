@@ -4,7 +4,7 @@
 
 ## 1. What it is
 
-A minimal JavaScript fantasy console running in the browser. 4 colors, 64×64 pixels, one button. Games are written in JavaScript against a small constrained API. The console has a social layer — a feed, profiles, shareable URLs. Everything runs client-side except auth and storage, which are a single Cloudflare Worker.
+A minimal JavaScript fantasy console running in the browser. 4 colors, 64×64 pixels, one button. Games — called _cassettes_ — are written in JavaScript against a small constrained API. The whole console is presented as a "desk room": a monitor on an IMSAI 8080 and a tape deck, with a cassette shelf, navigated by a scripted camera (§7). It has a social layer — a feed, profiles, shareable URLs. Everything runs client-side except auth and storage, which are a single Cloudflare Worker.
 
 ### Locked decisions
 
@@ -13,6 +13,9 @@ A minimal JavaScript fantasy console running in the browser. 4 colors, 64×64 pi
 | Resolution       | 64×64 pixels                                                                  |
 | Colors           | 4 (indexed 0–3, 0 = brightest, 3 = darkest)                                   |
 | Palettes         | 4 fixed palettes, author picks one                                            |
+| Viewport         | 1512×982 desktop target; monitor fixed-size, smaller viewports clip           |
+| Art direction    | Pixelated line art, monochrome; color only on cassettes and running games      |
+| Presentation     | One "desk room" scene; scripted 2D camera (pan/zoom), not CSS 3D               |
 | Input            | One button — tap anywhere. `a`, `aPressed`, `aReleased`                       |
 | Frame rate       | 30fps max — shell owns the loop, worker self-throttles                        |
 | Auth             | WebAuthn passkeys. No OAuth, no email, no third parties                       |
@@ -34,13 +37,15 @@ A minimal JavaScript fantasy console running in the browser. 4 colors, 64×64 pi
 
 ```
 SHELL (Cloudflare Pages — static)
-  ├── Router — hash-based, maps #/shelf, #/run, #/code to view functions
+  ├── Router — hash-based; each route parks the camera at a framing (§7)
   ├── Store — Redux-lite (getState, dispatch, subscribe, ~50 lines)
-  ├── Views — plain functions that build DOM from state
-  │     ├── SHELF — frecency feed, cassette cards
-  │     ├── RUN — canvas + tap handler
-  │     ├── CODE — CodeMirror editor + preview canvas + state pane
-  │     └── AUTH — passkey registration and sign-in
+  ├── Room — one fixed 1512×982 scene; a scripted 2D camera (translate/scale)
+  │          zooms/pans between framings, never free-look
+  │     ├── Machine framings — RUN (wide) / CODE / ART / HELP (zoomed in) on the
+  │     │     console (monitor + IMSAI switches + tape deck)
+  │     └── Shelf — the one non-machine framing; click a cassette to load it
+  ├── Console — persistent while a cassette is loaded: worker, game loop,
+  │             watchdog, input, monitor canvas; survives mode switches
   └── Canvas renderer — receives bitmap from worker, calls putImageData
 
 WORKER (Web Worker — runs user code)
@@ -186,50 +191,129 @@ Forks count as 300 seconds of engagement. Tune gravity exponent (1.6) after laun
 
 ## 6. URL scheme
 
+Each route parks the camera at a framing in the room (§7); moving between them is
+a scripted pan/zoom, not a page swap. First load opens on the establishing wide
+shot, console booting a game.
+
 ```
-/                       SHELF — frecency feed
+/                       landing — RUN a featured cassette (establishing shot)
+/shelf                  SHELF — frecency feed of cassettes
 /:user                  profile — all cassettes by user
-/:user/:slug            cassette page — RUN mode
-/:user/:slug/code       CODE mode — editor
+/:user/:slug            cassette running — RUN
+/:user/:slug/code       CODE — editor
+/:user/:slug/art        ART — sprite / map editor (v2)
+/:user/:slug/help       HELP — API + reference
 /register               passkey registration
 /signin                 passkey sign-in
 ```
 
 ---
 
-## 7. Modes
+## 7. The room
 
-### SHELF
+Everything is one continuous scene: a single fixed 1512×982 pixel drawing that
+holds the whole console — a monitor on a base of an **IMSAI 8080** (left) and a
+**tape deck** (right), in the center — with the cassette **shelf** to the right.
+You move through it with a scripted camera that zooms and pans between fixed
+framings; it is never free-look and the user never drives it directly. You are
+either **at the machine** (RUN / CODE / ART / HELP) or **at the shelf** — that is
+the whole map.
 
-- Frecency feed of cassette cards
-- Each card: title, author, palette swatch, play count
-- No metrics shown to users — play_count and play_seconds are internal only
-- Tap card → RUN mode
+### The scene
+
+- One flat pixel plane, drawn _in perspective_ — depth is illustrated, not real
+  geometry. Sized for a 1512×982 viewport; the camera is a 2D `translate`/`scale`
+  over it. Deliberately **not CSS 3D**: a flat plane keeps the live monitor canvas
+  and editor text pixel-crisp and axis-aligned (3D transforms would smear both and
+  fight the pixel grid).
+- The monitor is fixed-size, not resizable. Smaller viewports clip.
+
+### The tape deck
+
+- Holds the loaded cassette; its cover is visible and is one of the two things in
+  the whole UI allowed color (the running game is the other).
+- Spins for the boot duration (~2s) on load, and ~1s on save — physical feedback
+  for I/O.
+- Save / eject / record are controls on the deck (details TBD), making "record"
+  literal; eject returns to the shelf.
+
+### Art direction
+
+- Pixelated line art, monochrome. The **only** color anywhere is cassette cover
+  art and running games / screenshots.
+- Zoomed in on the machine that means exactly two color anchors: the cassette in
+  the deck and the game on the monitor. Everything else is line.
+
+### Camera & switches
+
+The IMSAI switches _are_ the navigation model — there is no menu.
+
+- **RUN is the resting wide shot:** the full scene — console center, shelf right,
+  the game playing on the monitor. It is the state whenever no editor switch is
+  thrown.
+- **CODE / ART / HELP are switches that zoom in** on the machine (monitor + IMSAI
+  + deck). They are mutually exclusive — throwing one drops the others; the ART
+  sub-switch (MAP or SPRITE) remembers its state.
+- Throw the active switch **off** → the camera zooms back out to RUN. Switching
+  **editor → editor** (e.g. CODE to ART) stays zoomed and just swaps the monitor's
+  contents; only turning _all_ editor switches off returns to RUN.
+- The game never stops through any of this (see Persistence), so RUN is not a mode
+  you "enter" — it's the camera stepping back to the game that is already running.
+- **SHELF** is reached by **clicking the shelf from RUN** (it sits in frame at the
+  right); the camera zooms to it. From an editor: switch off → RUN → click the
+  shelf. That single, consistent path is what "off → RUN" buys.
+
+Every framing keeps the switches in view — they are the only way to change mode.
 
 ### RUN
 
-- Full-screen canvas, 64×64 scaled to fit viewport
-- Boot sequence on load (brief, ~0.5s)
-- Tap anywhere = button input
-- No UI chrome while game is running
-- Back button or swipe returns to SHELF
-- Engagement timer starts on first tap, stops on navigation
+- Monitor shows the game, 64×64. Boot sequence on load (~2s, deck spinning). Tap
+  anywhere = button input. Engagement timer starts on first tap.
 
-### CODE
+### CODE (desktop only)
 
-- Desktop only — mobile shows "edit on desktop" message
-- Split pane: CodeMirror editor left, preview canvas right
-- Preview runs live — 300ms debounce after last keystroke, then re-eval
-- State pane: JSON view of current game state, updated each tick
-- Numeric scrubbing: click any number token in editor, drag to change value, game freezes, draw() reruns with new value
-- Play/pause button on preview
-- Save button — requires auth
+- Zoomed in on the machine; the monitor shows the CodeMirror editor with a live
+  game preview and a state pane.
+- Preview runs live — 300ms debounce after the last keystroke, then re-eval. State
+  pane: JSON view of current game state, updated each tick.
+- Numeric scrubbing: click a number token, drag to change value, game freezes,
+  `draw()` reruns. Play/pause. Save (on the deck) requires auth.
 
-### AUTH
+### ART (desktop only — v2)
 
-- Register: choose username → passkey prompt → done
-- Sign in: passkey prompt → done
-- No email, no OAuth
+- Same framing as CODE; the monitor shows the sprite or map editor (per the ART
+  sub-switch), alongside the live game preview. Sprites and the map editor are
+  deferred to v2 (§12); the switch and framing are reserved now.
+
+### HELP (desktop only)
+
+- Same framing; the monitor shows the reference — the cassette API and what a user
+  needs to know. HELP absorbs what were once a separate manual and intro booklet:
+  there is no "manual" place, only the switch.
+
+### SHELF
+
+- The one framing that is not the machine. Frecency feed of cassettes; covers
+  carry the only color. Click a cassette → it loads into the deck (spins) and boots
+  on the monitor, leaving you in RUN. Internal metrics (play_count, play_seconds)
+  are never shown to users.
+
+### Persistence
+
+- A cassette stays loaded and running across **all** machine framings
+  (RUN / CODE / ART / HELP) — zooming and switching modes never reloads it (see the
+  tape-deck hot-reload rule in §2 / worker). Selecting a different cassette on the
+  shelf is what replaces it (deck spins, boots).
+
+### Landing, auth & mobile
+
+- **Landing:** first visit opens in RUN with a demo game already playing; HELP is
+  where a newcomer goes to learn.
+- **Auth:** login/logout has no home yet, now that the only non-machine place is
+  the shelf — candidates are a control on the machine or folding it into the shelf
+  ("your shelf" = your account). Deferred to Phase 5; TBD.
+- **Mobile:** bypasses the room entirely — fullscreen RUN, tap to play, back
+  gesture to exit. CODE, ART, and HELP are desktop-only.
 
 ---
 
@@ -327,7 +411,7 @@ All drawing functions implemented in `src/worker/graphics.ts`. Watchdog implemen
 
 ### Phase 3 — Shell and editor
 
-CodeMirror rendering. Live reload on keystroke (300ms debounce). State pane showing JSON. Split pane layout. Router with SHELF, RUN, CODE stubs.
+CodeMirror rendering. Live reload on keystroke (300ms debounce). State pane showing JSON. The desk-room shell (§7): a fixed 1512×982 scene, scripted camera, IMSAI switches driving the RUN / CODE / ART / HELP framings, and the shelf. Router mapping routes to framings.
 
 ### Phase 4 — Numeric scrubbing
 
@@ -413,6 +497,13 @@ MVP-first sequencing: the CODE view ships against a plain `<textarea>` so the
 live-edit loop (edit → debounce → reload → preview + state pane) works end to
 end before any infrastructure lands. CodeMirror, the router, and the store are
 later swaps/additions onto that working loop, not prerequisites for it.
+
+The presentation design in §7 (the desk room, IMSAI switches, tape deck, scripted
+camera) reshapes the remaining pending tasks below — the router becomes camera
+framings, the CODE "split pane" becomes a zoom-in on the monitor, and RUN / CODE /
+ART / HELP / SHELF become camera framings in the room. These are re-sequenced into
+room-building increments as the work is picked up; the completed items above still
+stand.
 
 - [ ] Vendor CodeMirror 6 — download, audit, commit to vendor/
 - [ ] Implement basic router: hashchange listener, map routes to view functions
@@ -514,4 +605,4 @@ later swaps/additions onto that working loop, not prerequisites for it.
 
 ---
 
-_Phase 3 in progress — the CODE view's live-edit loop is running against a `<textarea>` (edit → debounce → reload → preview + state pane). Still open: a few Phase 2 primitives (`circStroke`, `circFill`, `polyStroke`, `print`, `rnd`) and the rest of Phase 3 (router, store, CodeMirror swap, SHELF/RUN skeletons). See §11 for live task status._
+_Phase 3 in progress — the CODE view's live-edit loop runs against a `<textarea>` (edit → debounce → reload → preview + state pane). The presentation is now designed (§7 — the desk room, IMSAI switches, tape deck, scripted camera); the remaining Phase 3 work re-sequences around building that room. Still open elsewhere: a few Phase 2 primitives (`circStroke`, `circFill`, `polyStroke`, `print`, `rnd`). See §11 for live task status._
