@@ -1,0 +1,82 @@
+[SUPERSEDED — this is an image-generation prompt for the abandoned PNG-background
+approach to the room. The presentation is now a real-3D scene; see
+design/handoff-realism.md. Kept for history.]
+
+A single all-in-one computer console, drawn as monochrome pixelated line art —
+thin off-white outlines on a near-black (#0d0d0d) background, no fills, no
+shading, no color anywhere. Wide 16:9 composition. The machine fills the frame
+and is centered; nothing else is in the scene.
+
+Everything is built into one continuous outer enclosure — screens, keyboard, and
+cassette deck integrated in a single housing, like a Commodore PET 2001 crossed
+with the button-bezel styling of a professional broadcast video monitor.
+
+Two-row layout:
+
+- TOP ROW: two CRT screens side by side, set into the enclosure.
+  - LEFT screen: the large one. A landscape rectangle, roughly 1.6:1.
+  - RIGHT screen: smaller. A PERFECT SQUARE, 1:1.
+  - The left screen's glass is about 2.2 times as wide and about 1.4 times as
+    tall as the right screen's glass.
+  - Their top edges align exactly, so a single unbroken bezel line runs across
+    the top of both.
+- BOTTOM ROW, left to right: a keyboard (the widest portion, sitting under the
+  left screen), then a cassette tape deck (narrower, sitting under the square
+  screen), then at the far right end the THIRD SCREEN, described in its own
+  section below.
+
+All three screens face the viewer perfectly straight-on (orthographic front
+elevation), with no perspective tilt on their faces. Each is a completely flat,
+rectilinear CRT: top and bottom edges perfectly horizontal, left and right edges
+perfectly vertical, all four corners exact 90 degree right angles, no taper, no
+curvature, no outward bulge, no rounded corners. All three glass areas are
+completely empty black — nothing displayed on any screen.
+
+THE THIRD SCREEN — bottom row, far right end, beside the cassette deck:
+
+This is a small auxiliary CRT monitor — a miniature version of the two screens
+above it, like the small preview monitor mounted in a broadcast equipment rack or
+a video edit bay. A single sheet of empty black glass, roughly 4:3, held in a
+deep rectangular bezel frame with clearly drawn depth, matching the bezel styling
+of the two large screens. Draw it as large as the height of the bottom row
+allows, so it reads unmistakably as a monitor rather than as a small detail.
+
+It is a SCREEN. It is NOT an air vent, NOT a speaker, NOT a grille, NOT a slot,
+NOT a louver panel, NOT a cartridge slot. Its glass is ONE single unbroken black
+rectangle: no slots, no bars, no louvers, no fins, no parallel lines, no ridges,
+no perforations, no mesh, and nothing dividing or subdividing the glass.
+
+Critical detail — the buttons:
+
+- FOUR square push buttons set into the bezel frame of the LEFT screen, along its
+  bottom edge, evenly spaced, their top edges essentially touching the bottom
+  edge of the glass.
+- ONE square push button set into the bezel frame of the RIGHT (square) screen,
+  along its bottom edge, in the same style.
+- TWO square push buttons set into the bezel frame of the small bottom-row
+  screen, along its bottom edge, in the same style but smaller.
+- There must be NO blank strip of front panel between the glass and the buttons;
+  the buttons border the glass directly, like the control buttons recessed into
+  the bottom bezel of a professional broadcast monitor. Only the bottom bezel
+  edge of each screen widens to carry its buttons; left, right, and top bezel
+  edges stay narrow.
+- Every button cap is COMPLETELY BLANK — a raised square cap with a plain empty
+  face. No letters, no words, no numbers, no symbols, no engraving of any kind on
+  any button.
+
+Because the square screen is shorter than the large left screen, there is a band
+of empty front panel below the square screen's button, above the cassette deck.
+Fill it with the audio section: on the left of that band, a rectangular speaker
+grille of parallel horizontal slots; immediately to its right, filling the rest
+of the band, a shallow empty recessed horizontal channel or track the same height
+as the grille, as though a cover could slide along the track and across the
+grille. The track is empty — do not draw the cover itself.
+
+Add a handful of small round panel screws at the corners of the front face.
+
+Crisp, technical, blueprint-like linework.
+
+ABSOLUTELY NO TEXT ANYWHERE IN THE IMAGE. No labels, no lettering, no words, no
+numbers, no logos, no badges, no nameplate, no serial plate, no watermark, no
+signature, no sparkle or star mark in any corner. Every surface is unlettered.
+No indicator lights, no LEDs, no glowing elements.

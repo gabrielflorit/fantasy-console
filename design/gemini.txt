@@ -1,0 +1,39 @@
+A single continuous scene, drawn as monochrome pixelated line art — thin
+off-white outlines on a near-black (#0d0d0d) background, no fills, no shading, no
+color anywhere. Wide 16:9 composition.
+
+The subject is a retro all-in-one computer console inspired by the Commodore PET
+2001 (integrated CRT, keyboard, and cassette deck in one housing) crossed with
+the labeled-button bezel of a Tektronix oscilloscope / professional broadcast
+monitor. Two-row layout:
+
+- Top row: a full-width monitor.
+- Bottom row: a short band split into a keyboard on the left (the wider portion)
+  and a cassette tape deck on the right (the narrower portion, tucked toward the
+  shelf).
+
+To the right of the whole console sits a cassette shelf holding vertical cassette
+spines.
+
+The monitor faces the viewer perfectly straight-on (orthographic front
+elevation), with no perspective tilt on its face. Its screen is a completely
+flat, rectilinear CRT: an exact 16:9 rectangle whose top and bottom edges are
+perfectly horizontal and left and right edges perfectly vertical, all four
+corners exact 90° right angles, no taper, no curvature, no outward bulge. The
+glass is empty black. (Any illustrated depth belongs to the enclosure's sides and
+the deck/shelf only — never to the screen face.)
+
+Critical detail: mount exactly four square push buttons set into the bezel frame
+itself — the narrow border immediately surrounding the glass — along the bottom
+edge, so their top edges essentially touch the bottom edge of the screen. There
+must be NO blank strip of front panel or housing between the glass and the
+buttons; the buttons border the glass directly, like the labeled control buttons
+recessed into the bottom bezel of a professional broadcast video monitor. The
+bottom bezel widens only just enough to carry this single row of buttons and no
+more. The four buttons are evenly spaced, each a raised square cap with its label
+printed on the face of the cap: RUN, CODE, HELP, PAUSE. Only this bottom bezel
+edge is widened for the buttons; the left, right, and top bezel edges stay
+narrow.
+
+Crisp, technical, blueprint-like linework. Aside from the four button labels, no
+other text and no indicator lights.
