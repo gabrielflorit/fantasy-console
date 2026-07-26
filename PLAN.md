@@ -15,7 +15,7 @@ A minimal JavaScript fantasy console running in the browser. 4 colors, 64×64 pi
 | Palettes         | 4 fixed palettes, author picks one                                            |
 | Viewport         | 1512×982 desktop target; monitor fixed-size, smaller viewports clip           |
 | Art direction    | Pixelated line art, monochrome; color only on cassettes and running games      |
-| Presentation     | One "desk room" scene; scripted 2D camera (pan/zoom), not CSS 3D               |
+| Presentation     | One "desk-room" scene in real 3D — WebGL housing + live CSS3D screens; scripted camera flies between machine and shelf. Degree of realism still open (§7, `design/handoff-realism.md`) |
 | Input            | One button — tap anywhere. `a`, `aPressed`, `aReleased`                       |
 | Frame rate       | 30fps max — shell owns the loop, worker self-throttles                        |
 | Auth             | WebAuthn passkeys. No OAuth, no email, no third parties                       |
@@ -79,6 +79,10 @@ API SERVER (Cloudflare Worker)
   POST /auth/authenticate       — WebAuthn sign-in
   POST /engagement              — record play duration (unauthenticated)
 ```
+
+> The "scripted 2D camera (translate/scale)" above describes the **current** shell
+> code. The presentation layer is being replaced with a real-3D scene (WebGL
+> housing + CSS3D screens, camera flights); see §7 and `design/handoff-realism.md`.
 
 ---
 
@@ -192,8 +196,9 @@ Forks count as 300 seconds of engagement. Tune gravity exponent (1.6) after laun
 ## 6. URL scheme
 
 Each route parks the camera at a framing in the room (§7); moving between them is
-a scripted pan/zoom, not a page swap. First load opens on the establishing wide
-shot, console booting a game.
+a scripted camera move, not a page swap (a 2D pan/zoom in the current shell, a 3D
+camera flight in the new presentation — see §7). First load opens on the
+establishing wide shot, console booting a game.
 
 ```
 /                       landing — RUN a featured cassette (establishing shot)
@@ -211,6 +216,15 @@ shot, console booting a game.
 
 ## 7. The room
 
+> **Partly superseded — pending full rewrite.** This section describes the
+> original **2D-plane** presentation. The 3D housing spike falsified its central
+> premise (see the corrected bullet below), and the presentation is moving to
+> real 3D. The _design_ decisions here — machine layout, the RUN/CODE/ART/HELP +
+> SHELF map, tape-deck behavior, persistence, art direction — still stand; only
+> the rendering technique changed. A full rewrite waits until the look settles
+> (the live open question). Live design: `design/handoff-realism.md` +
+> `design/handoff-3d-spike.md`.
+
 Everything is one continuous scene: a single fixed 1512×982 pixel drawing that
 holds the whole console — a monitor on a base of an **IMSAI 8080** (left) and a
 **tape deck** (right), in the center — with the cassette **shelf** to the right.
@@ -223,9 +237,10 @@ the whole map.
 
 - One flat pixel plane, drawn _in perspective_ — depth is illustrated, not real
   geometry. Sized for a 1512×982 viewport; the camera is a 2D `translate`/`scale`
-  over it. Deliberately **not CSS 3D**: a flat plane keeps the live monitor canvas
-  and editor text pixel-crisp and axis-aligned (3D transforms would smear both and
-  fight the pixel grid).
+  over it. (The original rationale here — "deliberately **not** CSS 3D, because 3D
+  transforms would smear the monitor and editor and fight the pixel grid" — was
+  **falsified by the spike**: CSS3D text stays pixel-crisp under the constraint set
+  in `design/handoff-realism.md`, and the presentation is moving to real 3D.)
 - The monitor is fixed-size, not resizable. Smaller viewports clip.
 
 ### The tape deck
@@ -506,18 +521,23 @@ room-building increments as the work is picked up; the completed items above sti
 stand.
 
 - [ ] Vendor CodeMirror 6 — download, audit, commit to vendor/
-- [ ] Implement basic router: hashchange listener, map routes to view functions
-- [ ] Implement Redux-lite store: getState, dispatch, subscribe, ~50 lines
+- [x] Implement basic router: hashchange listener, map routes to view functions
+  - hash router (`#run`/`#code`/`#help`, empty → run) maps each route to a camera framing; two-way synced with the switch state, no loops
+- [x] Implement Redux-lite store: getState, dispatch, subscribe, ~50 lines
+  - `src/shell/store.ts`; a reducer returning the same ref is a no-op (listeners don't fire) — that's what makes re-throwing the active radio switch free. Store holds only serializable UI state (`{ mode, userPaused }`); worker/loop/input/canvas stay imperative outside it
 - [x] Implement CODE view skeleton: split pane layout, `<textarea>` editor left, preview canvas + state pane right
 - [ ] Swap CodeMirror into the CODE view editor pane, replacing the `<textarea>`
 - [x] Wire editor content to worker: on change, debounce 300ms, send LoadMessage
   - the editor's textarea is the single source of the cassette code — boot and edits both flow through one `loadFromEditor` bridge, while `loadCassette(cassette)` stays generic for later RUN/server loads
 - [x] Implement state pane: `JSON.stringify(state)` rendered in the side pane below the preview, updated each tick
   - worker now emits `StateMessage` each tick (it never did before); non-serializable state skips the pane update rather than crashing the frame
-- [ ] Implement SHELF view skeleton: placeholder cards
-- [ ] Implement RUN view skeleton: full-screen canvas
-- [ ] Implement navigation between views
+- [~] Implement SHELF view skeleton: placeholder cards
+  - the room has a gray-box SHELF placeholder in frame (right of the console); no cards and no click-to-zoom yet
+- [x] Implement RUN view skeleton — the desk-room wide shot (game on the monitor, console + shelf in frame). Mobile full-screen RUN is still Phase 8
+- [x] Implement navigation between views
+  - the IMSAI switch bank is the nav model: RUN/CODE/HELP as a radio group (re-throwing the active one is a no-op) + an independent PAUSE toggle. A scripted 2D camera (`frameToRect` over a fixed 1512×982 scene, 450ms ease-out, reduced-motion cut) parks at the RUN wide shot or the machine push-in; CODE↔HELP stays zoomed and only swaps monitor content. The worker/loop/canvas persist across every switch (no reload). Pause is derived (`userPaused || help`) so HELP pauses without moving the switch; a status light (palette index 0) lights on effective pause
 - [ ] Implement play/pause button in CODE view
+  - superseded — PAUSE is now a switch on the machine, controllable in any mode, not a CODE-only button
 - [ ] Scope mobile RUN styles to the RUN view — the `touch-action: none` + `overflow: hidden` body styles were dropped when `index.html` became the CODE view; reintroduce them scoped to the RUN view container (not `body`) when RUN lands, so the editor and feed can still scroll on mobile
 
 ### Phase 4 — Numeric scrubbing
@@ -605,4 +625,11 @@ stand.
 
 ---
 
-_Phase 3 in progress — the CODE view's live-edit loop runs against a `<textarea>` (edit → debounce → reload → preview + state pane). The presentation is now designed (§7 — the desk room, IMSAI switches, tape deck, scripted camera); the remaining Phase 3 work re-sequences around building that room. Still open elsewhere: a few Phase 2 primitives (`circStroke`, `circFill`, `polyStroke`, `print`, `rnd`). See §11 for live task status._
+_Phase 3 in progress — the desk-room skeleton is up (§7): a fixed 1512×982 scene with a scripted 2D camera, the RUN wide shot and the machine push-in, and the IMSAI switch bank (RUN/CODE/HELP radio + PAUSE) driving both the store (`{ mode, userPaused }`) and a `#run`/`#code`/`#help` hash router. The console (worker/loop/monitor-canvas) persists across every switch; the CODE framing keeps the live-edit `<textarea>` loop. Furniture (console body, tape deck, shelf) is still gray-box; HELP is a placeholder. Next up: CodeMirror swap, real SHELF cards + click-to-zoom, and the tape-deck controls. Still open elsewhere: a few Phase 2 primitives (`circStroke`, `circFill`, `polyStroke`, `print`, `rnd`). See §11 for live task status._
+
+_Presentation direction has since moved: the throwaway 3D spike (`spike/3d/`,
+documented in `design/handoff-realism.md`) proved a real-3D room — WebGL housing
+with live CSS3D screens — is viable and pixel-crisp, falsifying §1/§7's original
+"not CSS 3D" decision. The current gray-box 2D shell is therefore provisional; how
+far to push realism is the live open question, and §7 gets a full rewrite once it
+settles. The real shell (`index.html`, `src/shell/`) is untouched by the spike._
