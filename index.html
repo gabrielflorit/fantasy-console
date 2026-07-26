@@ -10,64 +10,249 @@
         margin: 0;
       }
       body {
-        background: #222;
+        background: #0d0d0d;
         color: #ddd;
         font-family: ui-monospace, monospace;
-      }
-      /* CODE view: editor left, preview + state pane right. Desktop only —
-         router and a mobile "edit on desktop" message come in later phases. */
-      #code {
         display: flex;
-        height: 100%;
+        align-items: center;
+        justify-content: center;
+        /* clip, not hidden: hidden is still a scroll container, so focusing a
+           control inside the transformed scene lets the browser scroll the page
+           to "reveal" it, nudging everything. clip can't be scrolled at all. */
+        overflow: clip;
+      }
+
+      /* Fixed 1512×857 window onto the scene; smaller viewports clip. */
+      #stage {
+        position: relative;
+        width: 1512px;
+        height: 857px;
+        overflow: clip;
+        background: #101010;
+      }
+      /* The scene IS the guide drawing. A scripted 2D camera parks it at a
+         framing: RUN shows the whole thing, CODE/HELP zoom to the machine. */
+      #scene {
+        position: absolute;
+        width: 1512px;
+        height: 857px;
+        background: url('/design/room-art-wide.png') no-repeat;
+        background-size: 1512px 857px;
+        transform-origin: 0 0;
+        transition: transform 1800ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #scene {
+          transition: none;
+        }
+      }
+
+      /* ---- The live screen (over the drawn CRT glass in room-art-wide.png) ----
+         The 875×415 aperture is a fixed window; two rigid trays glide the
+         workbench around inside it, like a slide viewer. Nothing ever resizes —
+         panels (and the game) only slide. */
+      #screen {
+        position: absolute;
+        left: 250px;
+        top: 85px;
+        width: 875px;
+        height: 415px;
+        overflow: clip;
+        background: #000;
+      }
+
+      /* Horizontal tray: carries the whole bottom row — left pane, game, and
+         state — as one rigid unit. Slides home in work (workbench + game
+         visible) or off to the left in RUN. Everything on it moves together,
+         exactly as if you shoved one physical tray sideways. */
+      #h-tray {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 875px;
+        height: 415px;
+        transition: transform 1800ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+
+      /* The game: a fixed 310×310 panel, always live, riding the h-tray on the
+         right — beside the left pane in work, sliding to the left in RUN. */
+      #canvas {
+        position: absolute;
+        left: 540px;
+        top: 20px;
+        width: 310px;
+        height: 310px;
+        image-rendering: pixelated;
+        background: #000;
+      }
+      /* The game's state, pinned directly under it on the same rigid tray. */
+      #state {
+        position: absolute;
+        left: 540px;
+        top: 336px;
+        width: 310px;
+        height: 74px;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 6px;
+        overflow: auto;
+        font-size: 9px;
+        color: #9fca9f;
+        white-space: pre-wrap;
+        background: #101410;
+      }
+
+      /* Left pane: the workbench column on the h-tray, and the aperture for the
+         inner (vertical) tray. overflow:clip (not hidden) is load-bearing: the
+         inner tray is taller than this box, so hidden would make it a scroll
+         container — and sliding the *focused* editor out of view would make the
+         browser chase it by scrolling, cancelling the tray's slide. clip can't
+         be scrolled, so the CODE→HELP transition plays. */
+      #left-pane {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 520px;
+        height: 415px;
+        overflow: clip;
+      }
+      /* Vertical (inner) tray: the strip of tools. Slides up/down to register
+         one frame (CODE / HELP / …later ART) into the left pane — independently
+         of the h-tray's left/right slide. */
+      #inner-tray {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 520px;
+        height: 830px;
+        transition: transform 1800ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #h-tray,
+        #inner-tray {
+          transition: none;
+        }
+      }
+
+      /* The tool frames stacked on the inner tray. Every frame is exactly one
+         aperture height (415px), opaque, and clips its own content — so a long
+         editor scrolls INSIDE its frame instead of stretching it (which would
+         misalign the strip). The tray slides by whole frames to swap tools. */
+      .pane {
+        position: absolute;
+        left: 0;
+        width: 520px;
+        height: 415px;
+        box-sizing: border-box;
+        overflow: clip;
+      }
+      #pane-code {
+        top: 0;
+        background: #1a1a1a;
+      }
+      #pane-help {
+        top: 415px;
+        background: #141414;
       }
       #editor {
-        flex: 1;
-        min-width: 0;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
         background: #1a1a1a;
         color: #eee;
         border: none;
         outline: none;
         resize: none;
-        padding: 12px;
+        padding: 6px;
         font-family: ui-monospace, monospace;
-        font-size: 13px;
-        line-height: 1.5;
+        font-size: 11px;
+        line-height: 1.4;
         tab-size: 2;
       }
-      #side {
-        width: 320px;
+      #help {
+        width: 100%;
+        height: 100%;
         display: flex;
-        flex-direction: column;
-        border-left: 1px solid #000;
-      }
-      #canvas {
-        image-rendering: pixelated;
-        /* 64 × 5 — integer scale keeps pixels crisp. */
-        width: 320px;
-        height: 320px;
-        display: block;
-        background: #000;
-        touch-action: none;
-      }
-      #state {
-        flex: 1;
-        margin: 0;
-        padding: 12px;
-        overflow: auto;
+        align-items: center;
+        justify-content: center;
+        color: #6a6a6a;
         font-size: 12px;
-        color: #9fca9f;
-        white-space: pre-wrap;
+        letter-spacing: 0.1em;
+      }
+
+      /* ---- Switches: clickable regions over the drawn bezel buttons ----
+         The art draws the four push buttons on the monitor bezel; these are the
+         hit targets, with a highlight on the thrown one. Scene coords (est.). */
+      .switch {
+        position: absolute;
+        width: 46px;
+        height: 42px;
+        top: 524px;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .switch[data-mode='run'] {
+        left: 892px;
+      }
+      .switch[data-mode='code'] {
+        left: 948px;
+      }
+      .switch[data-mode='help'] {
+        left: 1004px;
+      }
+      #pause {
+        left: 1060px;
+      }
+      .switch.on {
+        background: rgba(240, 240, 240, 0.22);
+        border-color: #f0f0f0;
+      }
+      /* Pause light — no LED in the art, so WE add a small status dot just past
+         the button row: transparent normally, lit (palette index 0) whenever
+         effectively paused (thrown PAUSE or HELP). */
+      #pause-light {
+        position: absolute;
+        left: 1114px;
+        top: 534px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: transparent;
+      }
+      #pause-light.lit {
+        background: #f0f0f0;
+        box-shadow: 0 0 6px rgba(240, 240, 240, 0.8);
       }
     </style>
   </head>
   <body>
-    <main id="code">
-      <textarea id="editor" spellcheck="false"></textarea>
-      <div id="side">
-        <canvas id="canvas" width="64" height="64"></canvas>
-        <pre id="state"></pre>
+    <div id="stage">
+      <div id="scene">
+        <div id="screen">
+          <div id="h-tray">
+            <div id="left-pane">
+              <div id="inner-tray">
+                <div class="pane" id="pane-code">
+                  <textarea id="editor" spellcheck="false"></textarea>
+                </div>
+                <div class="pane" id="pane-help">
+                  <div id="help">HELP</div>
+                </div>
+              </div>
+            </div>
+            <canvas id="canvas" width="64" height="64"></canvas>
+            <pre id="state"></pre>
+          </div>
+        </div>
+        <button class="switch" data-mode="run" title="RUN"></button>
+        <button class="switch" data-mode="code" title="CODE"></button>
+        <button class="switch" data-mode="help" title="HELP"></button>
+        <button class="switch" id="pause" title="PAUSE"></button>
+        <span id="pause-light"></span>
       </div>
-    </main>
+    </div>
     <script type="module" src="./shell/index.js"></script>
     <script>
       new EventSource('/__reload').onmessage = () => location.reload()
