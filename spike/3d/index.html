@@ -1,0 +1,195 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>3D housing spike</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        background: #050505;
+        color: #ddd;
+        font-family: ui-monospace, monospace;
+        /* clip, not hidden: hidden is still a scroll container, so focusing the
+           textarea inside the transformed scene lets the browser scroll the page
+           to "reveal" it, which shifts everything off the pixel grid. */
+        overflow: clip;
+      }
+
+      /* Both renderers stack at the origin. WebGL below, CSS3D above — DOM can
+         never be occluded by geometry, which is the whole point of question 4. */
+      #webgl,
+      #css3d {
+        position: absolute;
+        left: 0;
+        top: 0;
+      }
+      #css3d {
+        /* the CSS3DObject elements set pointer-events:auto on themselves, so
+           only the screens are interactive and background drags fall through
+           to the WebGL canvas for the orbit diagnostic. */
+        pointer-events: none;
+      }
+
+      /* ---- Screen styling ----
+         Every screen element is sized in CSS px equal to its size in world
+         units. That is what makes a dead-on camera resolve to an identity
+         transform. Do not scale these with CSS. */
+      #editor,
+      #plain-editor,
+      #side-editor {
+        box-sizing: border-box;
+        background: #0b0b0b;
+        color: #e6e6e6;
+        border: none;
+        outline: none;
+        resize: none;
+        margin: 0;
+        padding: 8px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 13px;
+        line-height: 15px;
+        letter-spacing: 0;
+        tab-size: 2;
+        white-space: pre;
+        overflow: auto;
+      }
+
+      /* The comparison textareas are plain DOM — no 3D ancestor at all. They are
+         the control in the experiment, so their styling must match exactly. */
+      #plain-editor,
+      #side-editor {
+        position: absolute;
+        z-index: 10;
+        display: none;
+        border: 1px solid #ff0055;
+      }
+
+      #game {
+        display: block;
+        width: 384px;
+        height: 384px;
+        image-rendering: pixelated;
+        background: #0d0d0d;
+      }
+
+      #state {
+        box-sizing: border-box;
+        width: 200px;
+        height: 150px;
+        margin: 0;
+        padding: 8px;
+        background: #0b0f0b;
+        color: #9fca9f;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        line-height: 17px;
+        white-space: pre;
+        overflow: hidden;
+      }
+
+      /* ---- HUD ----
+         Deliberately ugly and outside the scene. It is instrumentation, not
+         design — it must not be mistaken for part of the machine. */
+      #hud {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        z-index: 20;
+        max-width: 520px;
+        padding: 8px 10px;
+        background: rgba(0, 0, 0, 0.82);
+        border-top: 1px solid #333;
+        border-right: 1px solid #333;
+        font-size: 11px;
+        line-height: 1.5;
+        color: #9a9a9a;
+      }
+      #hud b {
+        color: #ddd;
+        font-weight: normal;
+      }
+      #hud .ok {
+        color: #6ad46a;
+      }
+      #hud .bad {
+        color: #ff5a5a;
+      }
+      #hud button {
+        font: inherit;
+        color: #ddd;
+        background: #1c1c1c;
+        border: 1px solid #444;
+        padding: 2px 6px;
+        margin: 2px 2px 0 0;
+        cursor: pointer;
+      }
+      #hud button:hover {
+        background: #2a2a2a;
+      }
+      #hud #keys {
+        color: #6a6a6a;
+      }
+      #hud.min > *:not(#minline) {
+        display: none;
+      }
+      #minline {
+        display: none;
+      }
+      #hud.min #minline {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="webgl"></div>
+    <div id="css3d"></div>
+
+    <!-- Comparison controls. Plain DOM, never inside the 3D scene. -->
+    <textarea id="plain-editor" spellcheck="false"></textarea>
+    <textarea id="side-editor" spellcheck="false"></textarea>
+
+    <div id="hud">
+      <div id="minline">hud hidden — <b>H</b> to show</div>
+      <div id="rest"></div>
+      <div id="metrics"></div>
+      <div id="perf"></div>
+      <div id="modes"></div>
+      <div>
+        <button data-act="machine">machine</button>
+        <button data-act="shelf">shelf</button>
+        <button data-act="overlay">overlay compare</button>
+        <button data-act="side">side-by-side</button>
+        <button data-act="freeze">freeze fallback</button>
+        <button data-act="font">font preset</button>
+        <button data-act="shallower">recess −</button>
+        <button data-act="deeper">recess +</button>
+        <button data-act="clip">occlusion clip</button>
+        <button data-act="glow">bezel glow</button>
+        <button data-act="gauge">skew gauge</button>
+      </div>
+      <div id="keys">
+        keys (when not typing): <b>M</b> machine · <b>S</b> shelf ·
+        <b>C</b> overlay compare · <b>V</b> side-by-side · <b>F</b> freeze
+        fallback · <b>T</b> font preset · <b>[</b>/<b>]</b> flight duration ·
+        <b>,</b>/<b>.</b> recess depth · <b>O</b> occlusion clip ·
+        <b>B</b> bezel glow · <b>G</b> skew gauge · <b>drag</b> background to
+        orbit · <b>Esc</b> leave textarea · <b>H</b> hide hud
+      </div>
+    </div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="./main.js"></script>
+    <script>
+      new EventSource('/__reload').onmessage = () => location.reload()
+    </script>
+  </body>
+</html>
