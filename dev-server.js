@@ -14,6 +14,8 @@ let mimeTypes = {
   '.ts': 'application/javascript',
   '.css': 'text/css',
   '.map': 'application/json',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
 }
 
 // SSE reload
@@ -49,6 +51,12 @@ function broadcastReload() {
 // watch the dist/ directory for any file changes and broadcast a reload
 // recursive: true watches subdirectories too
 fs.watch(path.join(__dirname, 'dist'), { recursive: true }, broadcastReload)
+// spike/ has no build step, so watch the source directly. Optional: it only
+// exists while a throwaway prototype is checked out.
+let spikeDir = path.join(__dirname, 'spike')
+if (fs.existsSync(spikeDir)) {
+  fs.watch(spikeDir, { recursive: true }, broadcastReload)
+}
 
 // Static file serving
 function resolveFilePath(url) {
@@ -58,6 +66,15 @@ function resolveFilePath(url) {
     // /src/ requests are for original TypeScript source, used by devtools source maps
   } else if (url.startsWith('/src/')) {
     return path.join(__dirname, url)
+    // /design/ requests are committed design assets (e.g. the room guide),
+    // served straight from the project root so they're viewable in-browser
+  } else if (url.startsWith('/design/')) {
+    return path.join(__dirname, url)
+    // /spike/ is throwaway prototypes — plain JS, no build step, served from
+    // source. Directory URLs get index.html so /spike/3d/ works.
+  } else if (url.startsWith('/spike/')) {
+    let p = path.join(__dirname, url)
+    return url.endsWith('/') ? path.join(p, 'index.html') : p
     // everything else (JS, source maps) lives in dist/
   } else {
     return path.join(__dirname, 'dist', url)
@@ -78,7 +95,8 @@ function serveFile(url, res) {
       res.end(`not found: ${url}`)
       return
     }
-    res.writeHead(200, { 'Content-Type': mimeType })
+    // no-store so the browser never serves a stale asset during dev
+    res.writeHead(200, { 'Content-Type': mimeType, 'Cache-Control': 'no-store' })
     res.end(data)
   })
 }
